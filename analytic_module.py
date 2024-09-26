@@ -1,16 +1,19 @@
 import socket
 import threading
-import keyboard
 import requests
 import json
+import time
 
 #Port
 IMG_PORT = 12123
 CONVEYOR_PORT = 12121
 
 class Listener:
-    def __init__(self):
+    def __init__(self, endPointUrl, apiKey):
         self.stop_event = threading.Event()
+        self.end_point = endPointUrl
+        self.apiKey = apiKey
+        self.isCloud = not "5000" in endPointUrl
 
     # Function to handle incoming socket connections
     def handle_client(self, client_socket):
@@ -19,12 +22,12 @@ class Listener:
                 message = client_socket.recv(1024).decode('utf-8')
                 if str(message).startswith("FILE>"):
                     filePath = str(message)[5:]
-                    print("Img path:", filePath)
-                    self.send_file_to_api(filePath)                    
+                    self.analyzeImage(filePath)                    
             except:
                 break
 
-    def send_file_to_api(self, filePath):
+    def analyzeImage(self, filePath):
+        start_time = time.time()
         url = 'https://cookietest-prediction.cognitiveservices.azure.com/customvision/v3.0/Prediction/b690e8e3-f829-4219-98bf-f8b00f79abb3/detect/iterations/Iteration1/image'
         headers = {
             'Prediction-Key': '83cbb48fe107400c818014b9c892e08b',
@@ -33,18 +36,25 @@ class Listener:
         with open(filePath, 'rb') as file:
             response = requests.post(url, headers=headers, data=file)
 
-        print(response.status_code)
-        data = json.loads(response.text)
+        time.sleep(0.5)
+        if self.isCloud:
+            time.sleep(3)
 
-        #find any Bad cookie with prediction rate more than 0.8
-        filtered_predictions = [
-            prediction for prediction in data["predictions"]
-            if prediction["probability"] > 0.8 and prediction["tagName"] == "Bad"
-        ]
-        badCount = len(filtered_predictions)
-        print(f"Bad cookies in {filePath}: {badCount}")
-        if badCount>0:
-            self.activate_arm()
+        rowNo = filePath[-6:-4]
+        if response.status_code == 200:
+            data = json.loads(response.text)
+
+            #find any Bad cookie with prediction rate more than 0.8
+            filtered_predictions = [
+                prediction for prediction in data["predictions"]
+                if prediction["probability"] > 0.8 and prediction["tagName"] == "Bad"
+            ]
+            badCount = len(filtered_predictions)
+            print(f"ROW: {rowNo}   |   BAD: {badCount}  |  TIME: {(time.time() - start_time):.2f}s")
+            if badCount>0:
+                self.activate_arm()
+        else:
+            print(f"* ROW: {rowNo}   |  FAILED: {response.status_code}  |  TIME: {(time.time() - start_time):.2f}s")
 
     
     # Start a thread to handle incoming connections
@@ -58,7 +68,8 @@ class Listener:
             except:
                 break
 
-    def start_listening(self):
+    def start(self):
+        print("Starting Analytics Server...")
         # Set up the socket server
         server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server.bind(('localhost', IMG_PORT))
@@ -77,16 +88,3 @@ class Listener:
         client.send('PUSH'.encode('utf-8'))
         client.close()
 #-------------------------------------------------------------------------------------
-
-
-
-
-listen = Listener()
-listen.start_listening()
-print("Press 'Esc' to exit the application.")
-
-while True:
-    # Check if the Escape key is pressed
-    if keyboard.is_pressed('esc'):
-        print("Escape key pressed. Exiting...")
-        break

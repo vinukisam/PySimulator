@@ -1,2 +1,3 @@
 captured_image*.png
 captures/*
+__pycache__/*

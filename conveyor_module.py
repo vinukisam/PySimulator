@@ -38,6 +38,7 @@ DEV_OFF_Y = SCREEN_HEIGHT // 2 - BELT_WIDTH // 2 - 10
 CAM_MARGIN = COOKIE_WIDTH // 4
 CAM_POSITION = COOKIE_WIDTH * 3 + CAM_MARGIN + 10
 BELT_SPEED = 60 #between 30 and 300
+IMG_STORE_BUFFER = 20
 
 # Create the screen
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
@@ -175,12 +176,13 @@ class StatusMsg:
         text = font.render("Bad Cookies: " + str(badCookies) + " | Rejected Bad Cookies: " + str(rejectedCookies), True, TEXT_BLACK)
         # Blit the text onto the screen
         screen.blit(text, (0, 0))  # Position the text at top
+#-------------------------------------------------------------------------------------
 
 class ScreenCapture:
     def __init__(self):
         self.imgCounter = -1
 
-    def capture(self, screen, capture_area):
+    def capture(self, screen, capture_area, analyze):
         if self.imgCounter>0: #cookie is in the range of camera
             capture_surface = screen.subsurface(capture_area)
             capture_image = pygame.Surface(capture_area.size)
@@ -188,11 +190,16 @@ class ScreenCapture:
 
             #pygame.transform.smoothscale(capture_image,)
             # Save the captured image
-            pygame.image.save(capture_image, f"captures/image{self.imgCounter}.png")
-            self.sendImage(f"captures\image{self.imgCounter}.png")
+            imgFile = f"captures/image{self.imgCounter:02}.png"
+            pygame.image.save(capture_image, imgFile)
+
+            #only send image for analysis if opted
+            if analyze:
+                self.sendImage(imgFile)
+
         self.imgCounter += 1
         #storing only last 20 images
-        if(self.imgCounter>20):
+        if(self.imgCounter>IMG_STORE_BUFFER):
             self.imgCounter=1
 
     def sendImage(self, imgId):
@@ -205,83 +212,86 @@ class ScreenCapture:
             client.send(f'FILE>{imgId}'.encode('utf-8'))
             client.close()
         except:
-            print("*** Image send failed")
+            print("** Analytic module not available")
+#-------------------------------------------------------------------------------------
 
-def main():
-    clock = pygame.time.Clock()
-    cookies = []
-    speed = 2
-    arm = Arm()
-    belt = Belt()
-    running = True
-    stX = 0
-    badCookies = 0
-    
-    camera = Camera()
-    listener = Listener()
-    statusMsg = StatusMsg()
-    screenCapture = ScreenCapture()
+class Simulation:
+    def __init__(self, shouldAnalyzeImg):
+        self.shouldAnalyzeImg = shouldAnalyzeImg
 
-    listener.start_listening()
-
-    while running:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                listener.stop_event.set()
-                running = False
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                arm.active = True
-
-        # Add a new cookies, only when the previous cookies have moved on enough
-        if stX == 0:
-            stY = SCREEN_HEIGHT // 2 - BELT_WIDTH //2 + random.randint(0, COOKIE_WIDTH//2)
-            #place cookies one below the other until the belt is full
-            while stY <= SCREEN_HEIGHT // 2 + BELT_WIDTH //2 - COOKIE_WIDTH:
-                cookie = Cookie(random.randint(0, 10), stY)
-                #increment bad cookie counter
-                if cookie.isBad:
-                    badCookies += 1
-                cookies.append(cookie)
-                stY += COOKIE_WIDTH + 5
+    def start(self):
+        clock = pygame.time.Clock()
+        cookies = []
+        speed = 2
+        arm = Arm()
+        belt = Belt()
+        running = True
+        stX = 0
+        badCookies = 0
         
-        #Move the X pointer
-        stX += speed
-        if(stX > COOKIE_WIDTH + 10):
-            stX = 0
+        camera = Camera()
+        listener = Listener()
+        statusMsg = StatusMsg()
+        screenCapture = ScreenCapture()
 
-        #draw scree
-        screen.fill(SCREEN_BACKGROUND_WHITE)
-        #draw the belt
-        belt.draw(screen)
+        listener.start_listening()
 
-        # Move and draw cookies
-        for cookie in cookies:
-            cookie.move(speed)
-            cookie.draw(screen)
+        while running:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    listener.stop_event.set()
+                    running = False
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    arm.active = True
 
-        # Draw and move the arm
-        arm.draw(screen)
-        arm.move()
-        arm.push(cookies)
+            # Add a new cookies, only when the previous cookies have moved on enough
+            if stX == 0:
+                stY = SCREEN_HEIGHT // 2 - BELT_WIDTH //2 + random.randint(0, COOKIE_WIDTH//2)
+                #place cookies one below the other until the belt is full
+                while stY <= SCREEN_HEIGHT // 2 + BELT_WIDTH //2 - COOKIE_WIDTH:
+                    cookie = Cookie(random.randint(0, 10), stY)
+                    #increment bad cookie counter
+                    if cookie.isBad:
+                        badCookies += 1
+                    cookies.append(cookie)
+                    stY += COOKIE_WIDTH + 5
+            
+            #Move the X pointer
+            stX += speed
+            if(stX > COOKIE_WIDTH + 10):
+                stX = 0
 
-        #draw camera and capture area
-        camera.draw(screen)
+            #draw scree
+            screen.fill(SCREEN_BACKGROUND_WHITE)
+            #draw the belt
+            belt.draw(screen)
 
-        #draw the status text
-        statusMsg.draw(screen, badCookies, arm.rejectedCookies)
+            # Move and draw cookies
+            for cookie in cookies:
+                cookie.move(speed)
+                cookie.draw(screen)
 
-        # Remove cookies that have moved off the screen
-        cookies = [cookie for cookie in cookies if cookie.x < SCREEN_WIDTH]
+            # Draw and move the arm
+            arm.draw(screen)
+            arm.move()
+            arm.push(cookies)
 
-        #-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
-        if stX == 0:
-            screenCapture.capture(screen, camera.capture_area)
-        #-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
+            #draw camera and capture area
+            camera.draw(screen)
 
-        pygame.display.flip()
-        clock.tick(BELT_SPEED)
-        
-    pygame.quit()
+            #draw the status text
+            statusMsg.draw(screen, badCookies, arm.rejectedCookies)
 
-if __name__ == "__main__":
-    main()
+            # Remove cookies that have moved off the screen
+            cookies = [cookie for cookie in cookies if cookie.x < SCREEN_WIDTH]
+
+            #-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
+            if stX == 0:
+                screenCapture.capture(screen, camera.capture_area, self.shouldAnalyzeImg)
+            #-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
+
+            pygame.display.flip()
+            clock.tick(BELT_SPEED)
+            
+        pygame.quit()
+
