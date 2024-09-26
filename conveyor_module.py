@@ -113,6 +113,22 @@ class Cookie:
             self.x += speed
 #-------------------------------------------------------------------------------------
 
+class Row:
+    def __init__(self, rowNo):
+        self.x = COOKIE_WIDTH // 2
+        self.rowNo = rowNo
+
+    def draw(self, screen):
+        # Set up the font
+        font = pygame.font.Font(None, 20)  # None uses the default font, 36 is the font size
+        text = font.render(str(self.rowNo), True, TEXT_BLACK)
+        # Blit the text onto the screen
+        screen.blit(text, (self.x, SCREEN_HEIGHT // 2 + BELT_WIDTH // 2))  # Position the text at top
+
+    def move(self, speed):
+            self.x += speed
+#-------------------------------------------------------------------------------------
+
 class Belt:
 
     def draw(self, screen):
@@ -138,21 +154,22 @@ class Listener:
         self.stop_event = threading.Event()
 
     # Function to handle incoming socket connections
-    def handle_client(self, client_socket):
-        while not self.stop_event.is_set():
-            try:
-                message = client_socket.recv(1024).decode('utf-8')
-                if message == 'PUSH':
-                    pygame.event.post(pygame.event.Event(pygame.MOUSEBUTTONDOWN))
-            except:
-                break
+    def handle_arm_client(self, client_socket):
+        #while not self.stop_event.is_set():
+        try:
+            message = client_socket.recv(1024).decode('utf-8')
+            if message == 'PUSH':
+                pygame.event.post(pygame.event.Event(pygame.MOUSEBUTTONDOWN))
+        except:
+            pass
+        client_socket.close()
     
     # Start a thread to handle incoming connections
-    def start_server(self, server):
+    def start_arm_server(self, server):
         while not self.stop_event.is_set():
             try:
                 client_socket, addr = server.accept()
-                client_handler = threading.Thread(target=self.handle_client, args=(client_socket,))
+                client_handler = threading.Thread(target=self.handle_arm_client, args=(client_socket,))
                 client_handler.daemon = True
                 client_handler.start()
             except:
@@ -164,7 +181,7 @@ class Listener:
         server.bind(('localhost', CONVEYOR_PORT))
         server.listen(5)
         # Create a stop event
-        server_thread = threading.Thread(target=self.start_server, args=(server,))
+        server_thread = threading.Thread(target=self.start_arm_server, args=(server,))
         server_thread.daemon = True
         server_thread.start()
 #-------------------------------------------------------------------------------------
@@ -222,12 +239,14 @@ class Simulation:
     def start(self):
         clock = pygame.time.Clock()
         cookies = []
+        rows = []
         speed = 2
         arm = Arm()
         belt = Belt()
         running = True
         stX = 0
         badCookies = 0
+        rowNo = 1
         
         camera = Camera()
         listener = Listener()
@@ -246,6 +265,12 @@ class Simulation:
 
             # Add a new cookies, only when the previous cookies have moved on enough
             if stX == 0:
+                #add row
+                rows.append(Row(rowNo))
+                rowNo += 1
+                if rowNo > IMG_STORE_BUFFER:
+                    rowNo = 1
+
                 stY = SCREEN_HEIGHT // 2 - BELT_WIDTH //2 + random.randint(0, COOKIE_WIDTH//2)
                 #place cookies one below the other until the belt is full
                 while stY <= SCREEN_HEIGHT // 2 + BELT_WIDTH //2 - COOKIE_WIDTH:
@@ -270,6 +295,11 @@ class Simulation:
             for cookie in cookies:
                 cookie.move(speed)
                 cookie.draw(screen)
+            
+            # Move and draw row
+            for row in rows:
+                row.move(speed)
+                row.draw(screen)
 
             # Draw and move the arm
             arm.draw(screen)
@@ -284,6 +314,7 @@ class Simulation:
 
             # Remove cookies that have moved off the screen
             cookies = [cookie for cookie in cookies if cookie.x < SCREEN_WIDTH]
+            rows = [row for row in rows if row.x < SCREEN_WIDTH]
 
             #-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
             if stX == 0:

@@ -16,15 +16,16 @@ class Listener:
         self.isCloud = not "5000" in endPointUrl
 
     # Function to handle incoming socket connections
-    def handle_client(self, client_socket):
-        while not self.stop_event.is_set():
-            try:
-                message = client_socket.recv(1024).decode('utf-8')
-                if str(message).startswith("FILE>"):
-                    filePath = str(message)[5:]
-                    self.analyzeImage(filePath)                    
-            except:
-                break
+    def handle_analytic_client(self, client_socket):
+        #while not self.stop_event.is_set():
+        try:
+            message = client_socket.recv(1024).decode('utf-8')
+            if str(message).startswith("FILE>"):
+                filePath = str(message)[5:]
+                self.analyzeImage(filePath)                    
+        except:
+            pass
+        client_socket.close()
 
     def analyzeImage(self, filePath):
         start_time = time.time()
@@ -58,11 +59,11 @@ class Listener:
 
     
     # Start a thread to handle incoming connections
-    def start_server(self, server):
+    def start_analytic_server(self, server):
         while not self.stop_event.is_set():
             try:
                 client_socket, addr = server.accept()
-                client_handler = threading.Thread(target=self.handle_client, args=(client_socket,))
+                client_handler = threading.Thread(target=self.handle_analytic_client, args=(client_socket,))
                 client_handler.daemon = True
                 client_handler.start()
             except:
@@ -75,7 +76,7 @@ class Listener:
         server.bind(('localhost', IMG_PORT))
         server.listen(5)
         # Create a stop event
-        server_thread = threading.Thread(target=self.start_server, args=(server,))
+        server_thread = threading.Thread(target=self.start_analytic_server, args=(server,))
         server_thread.daemon = True
         server_thread.start()
     
