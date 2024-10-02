@@ -1,11 +1,12 @@
 import time
 import json
 import requests
+import os
 
 class EdgeAnalyzer:
     def __init__(self):
         self.endPoint = 'http://172.23.94.200:8080/image'
-        self.apiKey = '83cbb48fe107400c818014b9c892e08b'
+        self.apiKey = os.environ["SIM_API_KEY"]
 
     def analyzeImage(self, filePath) -> int:
         start_time = time.time()

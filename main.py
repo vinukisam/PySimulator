@@ -3,7 +3,7 @@ import conveyor_module
 
 def main():
 
-    analytic = analytic_module.Listener(isCloud=False)
+    analytic = analytic_module.Listener(isCloud=True)
     conveyor = conveyor_module.Simulation(shouldAnalyzeImg=True)
 
     analytic.start()

@@ -1,11 +1,12 @@
 import time
 import json
 import requests
+import os
 
 class CloudAnalyzer:
     def __init__(self):
         self.endPoint = 'https://cookietest-prediction.cognitiveservices.azure.com/customvision/v3.0/Prediction/b690e8e3-f829-4219-98bf-f8b00f79abb3/detect/iterations/Iteration1/image'
-        self.apiKey = '83cbb48fe107400c818014b9c892e08b'
+        self.apiKey = os.environ["SIM_API_KEY"]
 
     def analyzeImage(self, filePath) -> int:
         start_time = time.time()
