@@ -59,6 +59,7 @@ class Arm:
                                               self.y - ARM_WIDTH // 2, 
                                               ARM_THICKNESS, ARM_WIDTH // 2])
 
+
     def move(self):
         if self.active:
             self.speed += self.acceleration
@@ -158,7 +159,7 @@ class Listener:
         #while not self.stop_event.is_set():
         try:
             message = client_socket.recv(1024).decode('utf-8')
-            if message == 'PUSH':
+            if message == "PUSH":
                 pygame.event.post(pygame.event.Event(pygame.MOUSEBUTTONDOWN))
         except:
             pass
@@ -187,12 +188,12 @@ class Listener:
 #-------------------------------------------------------------------------------------
 
 class StatusMsg:
-    def draw(self, screen, badCookies, rejectedCookies):
+    def draw(self, screen, msg, coordinate):
         # Set up the font
         font = pygame.font.Font(None, 36)  # None uses the default font, 36 is the font size
-        text = font.render("Bad Cookies: " + str(badCookies) + " | Rejected Bad Cookies: " + str(rejectedCookies), True, TEXT_BLACK)
+        text = font.render(msg, True, TEXT_BLACK)
         # Blit the text onto the screen
-        screen.blit(text, (0, 0))  # Position the text at top
+        screen.blit(text, coordinate)  # Position the text at top
 #-------------------------------------------------------------------------------------
 
 class ScreenCapture:
@@ -310,7 +311,12 @@ class Simulation:
             camera.draw(screen)
 
             #draw the status text
-            statusMsg.draw(screen, badCookies, arm.rejectedCookies)
+            statusMsg.draw(screen, 
+                           f"Bad Cookies: {badCookies} | " + 
+                           f"Rejected Bad Cookies: {arm.rejectedCookies} " +
+                           f"(Efficiency:{(100 * float(arm.rejectedCookies)/float(badCookies)
+                                           if badCookies>0 else 0):.0f})",
+                           (0,0))
 
             # Remove cookies that have moved off the screen
             cookies = [cookie for cookie in cookies if cookie.x < SCREEN_WIDTH]
