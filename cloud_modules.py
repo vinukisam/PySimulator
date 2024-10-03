@@ -1,3 +1,16 @@
+'''
+***********************************************************************
+
+NOTES FOR STUDEENTS
+-------------------
+Change this file appropriately
+    1. update the endpoint URL
+    2. update the API Key or update your environment variable
+    3. (If required) change the logic
+
+***********************************************************************
+'''
+
 import time
 import json
 import requests

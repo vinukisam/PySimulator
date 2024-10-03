@@ -1,3 +1,13 @@
+'''
+***********************************************************************
+
+NOTES FOR STUDEENTS
+-------------------
+DO NOT MODIFY THIS FILE
+
+***********************************************************************
+'''
+
 import pygame
 import random
 import socket
@@ -38,7 +48,6 @@ DEV_OFF_Y = SCREEN_HEIGHT // 2 - BELT_WIDTH // 2 - 10
 CAM_MARGIN = COOKIE_WIDTH // 4
 CAM_POSITION = COOKIE_WIDTH * 3 + CAM_MARGIN + 10
 BELT_SPEED = 60 #between 30 and 300
-IMG_STORE_BUFFER = 20
 
 # Create the screen
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
@@ -217,7 +226,7 @@ class ScreenCapture:
 
         self.imgCounter += 1
         #storing only last 20 images
-        if(self.imgCounter>IMG_STORE_BUFFER):
+        if(self.imgCounter>IMG_LIMIT):
             self.imgCounter=1
 
     def sendImage(self, imgId):
@@ -234,8 +243,10 @@ class ScreenCapture:
 #-------------------------------------------------------------------------------------
 
 class Simulation:
-    def __init__(self, shouldAnalyzeImg):
+    def __init__(self, shouldAnalyzeImg, imgLimit):
         self.shouldAnalyzeImg = shouldAnalyzeImg
+        global IMG_LIMIT 
+        IMG_LIMIT = imgLimit
 
     def start(self):
         clock = pygame.time.Clock()
@@ -269,7 +280,7 @@ class Simulation:
                 #add row
                 rows.append(Row(rowNo))
                 rowNo += 1
-                if rowNo > IMG_STORE_BUFFER:
+                if rowNo > IMG_LIMIT:
                     rowNo = 1
 
                 stY = SCREEN_HEIGHT // 2 - BELT_WIDTH //2 + random.randint(0, COOKIE_WIDTH//2)
@@ -315,7 +326,7 @@ class Simulation:
                            f"Bad Cookies: {badCookies} | " + 
                            f"Rejected Bad Cookies: {arm.rejectedCookies} " +
                            f"(Efficiency:{(100 * float(arm.rejectedCookies)/float(badCookies)
-                                           if badCookies>0 else 0):.0f})",
+                                           if badCookies>0 else 0):.0f}%)",
                            (0,0))
 
             # Remove cookies that have moved off the screen

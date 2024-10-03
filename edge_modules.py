@@ -1,3 +1,16 @@
+'''
+***********************************************************************
+
+NOTES FOR STUDEENTS
+-------------------
+Change this file appropriately
+    1. update the endpoint URL
+    2. update the API Key or update your environment variable
+    3. (If required) change the logic
+
+***********************************************************************
+'''
+
 import time
 import json
 import requests
@@ -5,7 +18,7 @@ import os
 
 class EdgeAnalyzer:
     def __init__(self):
-        self.endPoint = 'http://172.23.94.200:8080/image'
+        self.endPoint = 'http://172.23.94.200:80/image'
         self.apiKey = os.environ["SIM_API_KEY"]
 
     def analyzeImage(self, filePath) -> int:
