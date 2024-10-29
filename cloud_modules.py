@@ -18,8 +18,8 @@ import os
 
 class CloudAnalyzer:
     def __init__(self):
-        self.endPoint = '[CLOUD URL]'
-        self.apiKey = '[API KEY]'
+        self.endPoint = 'https://2021csc051-prediction.cognitiveservices.azure.com/customvision/v3.0/Prediction/3afd0fce-ce6c-48dd-b92e-195e9fffc0ef/detect/iterations/Iteration2/image'
+        self.apiKey = '74a793fe0ad046779ed5d02a3b56def3'
 
     def analyzeImage(self, filePath) -> int:
         start_time = time.time()

@@ -18,8 +18,8 @@ import threading
 pygame.init()
 
 # Screen dimensions
-SCREEN_WIDTH = 1200
-SCREEN_HEIGHT = 1000
+SCREEN_WIDTH = 900
+SCREEN_HEIGHT = 700
 
 # Port Listening
 CONVEYOR_PORT = 12121
@@ -42,7 +42,7 @@ ARM_THICKNESS = 20
 ARM_WIDTH = 150
 BELT_WIDTH = 600
 COOKIE_WIDTH = 100
-COOKIE_QUALITY = 100 #between 10 and 100
+COOKIE_QUALITY = 50 #between 10 and 100
 ARM_POSITION = (SCREEN_WIDTH // 2) - ARM_WIDTH // 2
 DEV_OFF_Y = SCREEN_HEIGHT // 2 - BELT_WIDTH // 2 - 10
 CAM_MARGIN = COOKIE_WIDTH // 4
@@ -105,7 +105,15 @@ class Cookie:
             self.shape_arc = BAD_SHAPES[random.randint(1,3)]
         else:
             self.shape_arc = BAD_SHAPES[0]
-   
+
+# -----------------------------------------------------
+        self.has_chips = True  
+        self.chip_color = (50, 25, 0)  # Dark brown for chocolate chips
+        self.num_chips = random.randint(3, 7)  
+        self.chip_positions = [(random.randint(10, COOKIE_WIDTH - 10), random.randint(10, COOKIE_WIDTH - 10)) for _ in range(self.num_chips)]
+# (added for the choc chips)
+# -------------------------------------------------------   
+
     def draw(self, screen):
         # Draw the full cookie
         pygame.draw.ellipse(screen, 
@@ -117,6 +125,15 @@ class Cookie:
                         (0,0,0), 
                         [self.x, self.y, COOKIE_WIDTH, COOKIE_WIDTH],
                         self.shape_arc[0], self.shape_arc[1], self.shape_arc[2])
+
+# ---------------------------------------------------------
+        if self.has_chips:
+            for pos in self.chip_positions:
+                chip_x = self.x + pos[0]
+                chip_y = self.y + pos[1]
+                pygame.draw.circle(screen, self.chip_color, (chip_x, chip_y), 7)  # radius of the chocolate chip is 7
+# (draw choc chips)
+# ------------------------------------------------------------
 
     def move(self, speed):
         if(self.dead == False) :
@@ -217,7 +234,8 @@ class ScreenCapture:
 
             #pygame.transform.smoothscale(capture_image,)
             # Save the captured image
-            imgFile = f"captures/image{self.imgCounter:02}.png"
+            # imgFile = f"captures/image{self.imgCounter:02}.png"
+            imgFile = "e:/CSC/cookies/PySimulator/captures/image{:02}.png".format(self.imgCounter)
             pygame.image.save(capture_image, imgFile)
 
             #only send image for analysis if opted
